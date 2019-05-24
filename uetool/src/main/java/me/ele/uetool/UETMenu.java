@@ -7,18 +7,15 @@ import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.graphics.PixelFormat;
 import android.os.Build;
-import android.view.Gravity;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.ViewConfiguration;
-import android.view.ViewGroup;
-import android.view.WindowManager;
+import android.view.*;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import com.jakewharton.scalpel.ScalpelFrameLayout;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -50,27 +47,51 @@ public class UETMenu extends LinearLayout {
 
         vMenu = findViewById(R.id.menu);
         vSubMenuContainer = findViewById(R.id.sub_menu_container);
-
-        subMenus.add(new UETSubMenu.SubMenu("捕捉控件", R.drawable.uet_edit_attr, new OnClickListener() {
+        Resources resources = context.getResources();
+        subMenus.add(new UETSubMenu.SubMenu(resources.getString(R.string.uet_catch_view), R.drawable.uet_edit_attr, new OnClickListener() {
             @Override
             public void onClick(View v) {
                 open(TransparentActivity.Type.TYPE_EDIT_ATTR);
             }
         }));
-        subMenus.add(new UETSubMenu.SubMenu("相对位置", R.drawable.uet_relative_position,
+        subMenus.add(new UETSubMenu.SubMenu(resources.getString(R.string.uet_relative_location), R.drawable.uet_relative_position,
                 new OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         open(TransparentActivity.Type.TYPE_RELATIVE_POSITION);
                     }
                 }));
-        subMenus.add(new UETSubMenu.SubMenu("网格栅栏", R.drawable.uet_show_gridding,
+        subMenus.add(new UETSubMenu.SubMenu(resources.getString(R.string.uet_grid), R.drawable.uet_show_gridding,
                 new OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         open(TransparentActivity.Type.TYPE_SHOW_GRIDDING);
                     }
                 }));
+
+        subMenus.add(new UETSubMenu.SubMenu(resources.getString(R.string.uet_scalpel), R.drawable.uet_scalpel, new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ViewGroup decorView = (ViewGroup) Util.getCurrentActivity().getWindow().getDecorView();
+                ViewGroup content = decorView.findViewById(android.R.id.content);
+                View contentChild = content.getChildAt(0);
+                if (contentChild != null) {
+                    if (contentChild instanceof ScalpelFrameLayout) {
+                        content.removeAllViews();
+                        View originContent = ((ScalpelFrameLayout) contentChild).getChildAt(0);
+                        ((ScalpelFrameLayout) contentChild).removeAllViews();
+                        content.addView(originContent);
+                    } else {
+                        content.removeAllViews();
+                        ScalpelFrameLayout frameLayout = new ScalpelFrameLayout(getContext());
+                        frameLayout.setLayerInteractionEnabled(true);
+                        frameLayout.setDrawIds(true);
+                        frameLayout.addView(contentChild);
+                        content.addView(frameLayout);
+                    }
+                }
+            }
+        }));
 
         for (UETSubMenu.SubMenu subMenu : subMenus) {
             UETSubMenu uetSubMenu = new UETSubMenu(getContext());

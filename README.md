@@ -1,4 +1,4 @@
-UETool [![platform](https://img.shields.io/badge/platform-android-brightgreen.svg)](https://developer.android.com/index.html) [![license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/eleme/UETool/blob/master/LICENSE)
+UETool [![GitHub release](https://img.shields.io/github/release/eleme/UETool.svg?style=social)](https://github.com/eleme/UETool/releases) [![platform](https://img.shields.io/badge/platform-android-brightgreen.svg)](https://developer.android.com/index.html) [![license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/eleme/UETool/blob/master/LICENSE)
 ======
 
 ![](https://github.com/eleme/UETool/blob/master/art/uet_banner.jpeg)
@@ -7,16 +7,18 @@ UETool [![platform](https://img.shields.io/badge/platform-android-brightgreen.sv
 
 [中文版](https://github.com/eleme/UETool/blob/master/README_zh.md)
 
-UETool is a debug tool for anyone who needs show/edit one or more view's attributions. It works on Activity/Fragment/Dialog/PopupWindow or any else view shows on the screen.
+UETool is a debug tool for anyone who needs show/edit one or more views' attributions. It works on Activity/Fragment/Dialog/PopupWindow or any other view.
 
-At present UETool provides functionality as bellows:
+At present, UETool provides functionality as follows:
 
-- move any view on the screen, select view repeatedly will select its parent view
-- show / edit normal view's attributions such as edit TextView's text、textSize、textColor etc.
-- if you are using Fresco's DraweeView, UETool provides show more attributions like ImageURI、PlaceHolderImage、CornerRadius etc.
-- you can customize any view's attributions you want with simple way such as some biz param
-- show two view's relative position
-- show gridding for checking some view alignment 
+- Move any view on the screen (selecting view repeatedly will select its parent's view)
+- Show/edit normal view's attributions such as edit TextView's text、textSize、textColor etc.
+- If you are using Fresco's DraweeView, UETool provides show more attributions like ImageURI、PlaceHolderImage、CornerRadius etc.
+- You can customize any view's attributions you want with simple way such as some biz param
+- You can check ValidViews and choose which target view you want (if offered UETool isn’t what you want)
+- Show two view's relative positions
+- Show gridding for checking view alignment
+- Support Android P
 
 ## EFFECT
 
@@ -37,6 +39,8 @@ At present UETool provides functionality as bellows:
 
 | Attribute | Value Sample | Editable |
 | --- | --- | --- |
+| Move | if you checked it, you can move view easily |  |
+| ValidViews | sometimes target view which UETool offered isn’t you want, you can check it and choose which you want |  |
 | Class | android.widget.LinearLayout |  |
 | Id | 0x7f0d009c |  |
 | ResName | btn |  |
@@ -55,9 +59,11 @@ At present UETool provides functionality as bellows:
 | TextSize(sp) | 14 | YES |
 | TextColor | #DE000000 | YES |
 | IsBold | TRUE | YES |
-| SpanBitmap | [PICTURE] 72px*39px | |
+| SpanBitmap | [PICTURE] 72px*39px |  |
 | DrawableLeft | [PICTURE] 51px*51px |  |
 | DrawableRight | [PICTURE] 36px*36px |  |
+| DrawableTop | [PICTURE] 36px*36px |  |
+| DrawableBottom | [PICTURE] 36px*36px |  |
 | **ImageView** |  |  |
 | Bitmap | [PICTURE] 144px*144px |  |
 | ScaleType | CENTER_CROP |  |
@@ -76,11 +82,11 @@ At present UETool provides functionality as bellows:
 
 ```gradle
 dependencies {
-  debugCompile 'me.ele:uetool:1.0.12'
-  releaseCompile 'me.ele:uetool-no-op:1.0.12'
+  debugImplementation 'me.ele:uetool:1.0.17'
+  releaseImplementation 'me.ele:uetool-no-op:1.0.17'
 
   // if you want to show more attrs about Fresco's DraweeView
-  debugCompile 'me.ele:uetool-fresco:1.0.12'
+  debugImplementation 'me.ele:uetool-fresco:1.0.17'
 }
 ```
 
@@ -100,7 +106,7 @@ UETool.showUETMenu(int y);
 UETool.dismissUETMenu();
 ```
 
-#### filter out view whitch you don't want to select
+#### filter out view which you don't want to select
 
 ```java
 UETool.putFilterClass(Class viewClazz);

@@ -2,11 +2,7 @@ package me.ele.uetool;
 
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.DashPathEffect;
-import android.graphics.Paint;
-import android.graphics.Rect;
+import android.graphics.*;
 import android.os.Build;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
@@ -15,19 +11,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Toast;
+import me.ele.uetool.base.DimenUtil;
+import me.ele.uetool.base.Element;
+import me.ele.uetool.base.ReflectionP;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import me.ele.uetool.base.Element;
-
-import static me.ele.uetool.base.DimenUtil.dip2px;
-import static me.ele.uetool.base.DimenUtil.getScreenHeight;
-import static me.ele.uetool.base.DimenUtil.getScreenWidth;
-import static me.ele.uetool.base.DimenUtil.px2dip;
-import static me.ele.uetool.base.DimenUtil.sp2px;
+import static me.ele.uetool.base.DimenUtil.*;
 
 public class CollectViewsLayout extends View {
 
@@ -81,43 +74,71 @@ public class CollectViewsLayout extends View {
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         try {
-            Activity targetActivity = UETool.getInstance().getTargetActivity();
-            WindowManager windowManager = targetActivity.getWindowManager();
-            Field mGlobalField = Class.forName("android.view.WindowManagerImpl").getDeclaredField("mGlobal");
-            mGlobalField.setAccessible(true);
+            final Activity targetActivity = UETool.getInstance().getTargetActivity();
+            final WindowManager windowManager = targetActivity.getWindowManager();
 
-            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {
-                Field mViewsField = Class.forName("android.view.WindowManagerGlobal").getDeclaredField("mViews");
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN) {
+                final Field mGlobalField = Class.forName("android.view.WindowManagerImpl").getDeclaredField("mGlobal");
+                mGlobalField.setAccessible(true);
+
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {
+                    Field mViewsField = Class.forName("android.view.WindowManagerGlobal").getDeclaredField("mViews");
+                    mViewsField.setAccessible(true);
+                    List<View> views;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                        views = (List<View>) mViewsField.get(mGlobalField.get(windowManager));
+                    } else {
+                        views = Arrays.asList((View[]) mViewsField.get(mGlobalField.get(windowManager)));
+                    }
+
+                    for (int i = views.size() - 1; i >= 0; i--) {
+                        View targetView = getTargetDecorView(targetActivity, views.get(i));
+                        if (targetView != null) {
+                            traverse(targetView);
+                            break;
+                        }
+                    }
+                } else {
+                    ReflectionP.breakAndroidP(new ReflectionP.Func0() {
+                        @Override
+                        public void call() {
+                            try {
+                                Field mRootsField = Class.forName("android.view.WindowManagerGlobal").getDeclaredField("mRoots");
+                                mRootsField.setAccessible(true);
+                                List viewRootImpls;
+                                viewRootImpls = (List) mRootsField.get(mGlobalField.get(windowManager));
+                                for (int i = viewRootImpls.size() - 1; i >= 0; i--) {
+                                    Class clazz = Class.forName("android.view.ViewRootImpl");
+                                    Object object = viewRootImpls.get(i);
+                                    Field mWindowAttributesField = clazz.getDeclaredField("mWindowAttributes");
+                                    mWindowAttributesField.setAccessible(true);
+                                    Field mViewField = clazz.getDeclaredField("mView");
+                                    mViewField.setAccessible(true);
+                                    View decorView = (View) mViewField.get(object);
+                                    WindowManager.LayoutParams layoutParams = (WindowManager.LayoutParams) mWindowAttributesField.get(object);
+                                    if (layoutParams.getTitle().toString().contains(targetActivity.getClass().getName())
+                                            || getTargetDecorView(targetActivity, decorView) != null) {
+                                        traverse(decorView);
+                                        break;
+                                    }
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                }
+            } else {
+                // http://androidxref.com/4.1.1/xref/frameworks/base/core/java/android/view/WindowManagerImpl.java
+                Field mWindowManagerField = Class.forName("android.view.WindowManagerImpl$CompatModeWrapper").getDeclaredField("mWindowManager");
+                mWindowManagerField.setAccessible(true);
+                Field mViewsField = Class.forName("android.view.WindowManagerImpl").getDeclaredField("mViews");
                 mViewsField.setAccessible(true);
-                List<View> views = (List<View>) mViewsField.get(mGlobalField.get(windowManager));
+                List<View> views = Arrays.asList((View[]) mViewsField.get(mWindowManagerField.get(windowManager)));
                 for (int i = views.size() - 1; i >= 0; i--) {
                     View targetView = getTargetDecorView(targetActivity, views.get(i));
                     if (targetView != null) {
                         traverse(targetView);
-                        break;
-                    }
-                }
-            } else {
-                Field mRootsField = Class.forName("android.view.WindowManagerGlobal").getDeclaredField("mRoots");
-                mRootsField.setAccessible(true);
-                List viewRootImpls;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                    viewRootImpls = (List) mRootsField.get(mGlobalField.get(windowManager));
-                } else {
-                    viewRootImpls = Arrays.asList((Object[]) mRootsField.get(mGlobalField.get(windowManager)));
-                }
-                for (int i = viewRootImpls.size() - 1; i >= 0; i--) {
-                    Class clazz = Class.forName("android.view.ViewRootImpl");
-                    Object object = viewRootImpls.get(i);
-                    Field mWindowAttributesField = clazz.getDeclaredField("mWindowAttributes");
-                    mWindowAttributesField.setAccessible(true);
-                    Field mViewField = clazz.getDeclaredField("mView");
-                    mViewField.setAccessible(true);
-                    View decorView = (View) mViewField.get(object);
-                    WindowManager.LayoutParams layoutParams = (WindowManager.LayoutParams) mWindowAttributesField.get(object);
-                    if (layoutParams.getTitle().toString().contains(targetActivity.getClass().getName())
-                            || getTargetDecorView(targetActivity, decorView) != null) {
-                        traverse(decorView);
                         break;
                     }
                 }
@@ -139,12 +160,14 @@ public class CollectViewsLayout extends View {
         if (UETool.getInstance().getFilterClasses().contains(view.getClass().getName())) return;
         if (view.getAlpha() == 0 || view.getVisibility() != View.VISIBLE) return;
         if (getResources().getString(R.string.uet_disable).equals(view.getTag())) return;
-        elements.add(new Element(view));
         if (view instanceof ViewGroup) {
+            elements.add(0, new Element(view));
             ViewGroup parent = (ViewGroup) view;
             for (int i = 0; i < parent.getChildCount(); i++) {
                 traverse(parent.getChildAt(i));
             }
+        } else {
+            elements.add(new Element(view));
         }
     }
 
@@ -171,13 +194,16 @@ public class CollectViewsLayout extends View {
         for (int i = elements.size() - 1; i >= 0; i--) {
             final Element element = elements.get(i);
             if (element.getRect().contains((int) x, (int) y)) {
+                if (isParentNotVisible(element.getParentElement())) {
+                    continue;
+                }
                 if (element != childElement) {
                     childElement = element;
                     parentElement = element;
                 } else if (parentElement != null) {
                     parentElement = parentElement.getParentElement();
                 }
-                target = parentElement;
+                target = parentElement == null ? element : parentElement;
                 break;
             }
         }
@@ -186,6 +212,30 @@ public class CollectViewsLayout extends View {
         }
         return target;
     }
+
+    private boolean isParentNotVisible(Element parent) {
+        if (parent == null) {
+            return false;
+        }
+        if (parent.getRect().left >= DimenUtil.getScreenWidth()
+                || parent.getRect().top >= DimenUtil.getScreenHeight()) {
+            return true;
+        } else {
+            return isParentNotVisible(parent.getParentElement());
+        }
+    }
+
+    protected List<Element> getTargetElements(float x, float y) {
+        List<Element> validList = new ArrayList<>();
+        for (int i = elements.size() - 1; i >= 0; i--) {
+            final Element element = elements.get(i);
+            if (element.getRect().contains((int) x, (int) y)) {
+                validList.add(element);
+            }
+        }
+        return validList;
+    }
+
 
     protected void drawText(Canvas canvas, String text, float x, float y) {
         float left = x - textBgFillingSpace;
